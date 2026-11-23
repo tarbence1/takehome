@@ -1,10 +1,24 @@
 services:
+  # Csak build-hez: az alap image frissített csomagokkal, hogy a PHP core és a
+  # később telepített bővítmények (pl. iconv) verziója egyezzen.
+  php-base:
+    image: takehome-php-base
+    build:
+      dockerfile_inline: |
+        FROM trafex/php-nginx:3.6.0
+        USER root
+        RUN apk upgrade --no-cache
+        USER nobody
+    entrypoint: ["true"]
+
   api-dev:
     hostname: api-dev
     container_name: takehome-api-dev
     build:
       dockerfile: api-dev.Dockerfile
       context: ./docker
+      additional_contexts:
+        trafex/php-nginx:3.6.0: service:php-base
     environment:
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
     volumes:
@@ -47,6 +61,8 @@ services:
     build:
       dockerfile: docker/prod.Dockerfile
       context: .
+      additional_contexts:
+        trafex/php-nginx:3.6.0: service:php-base
     environment:
       XDEBUG_MODE: ${XDEBUG_MODE:-off}
     extra_hosts:

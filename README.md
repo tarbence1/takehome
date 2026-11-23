@@ -1,26 +1,30 @@
 # Adiumsoft PHP / React gyakorlati feladat
 
 
-> **Megjegyzés a `docker/` mappa módosításáról**
+> **Megjegyzés a `docker-compose.yaml` módosításáról**
 >
 > A projekt nálam nem indult el: a `composer install` hibára futott, mert nem
 > töltődött be a PHP `iconv` bővítménye. Az ok, hogy az alap image régebbi PHP-t
 > tartalmaz (8.3.9), az `apk add` viszont a legújabb bővítményeket telepíti
 > mellé (8.3.36), és ezek nem működnek együtt.
 >
-> A javítás egyetlen sor a Dockerfile-okban: telepítés előtt egy
-> `apk upgrade` frissíti a meglévő csomagokat is, így minden PHP-csomag
-> ugyanarra a verzióra kerül.
+> Mivel a kiírás szerint a `docker/` mappa nem módosítható, a javítás a
+> `docker-compose.yaml`-ba került: egy `php-base` szolgáltatás elkészíti az
+> alap image frissített változatát (`apk upgrade`), az `api-dev` és a `prod`
+> build pedig az `additional_contexts` beállítással ezt használja a
+> `trafex/php-nginx:3.6.0` helyett. Így minden PHP-csomag ugyanarra a
+> verzióra kerül. A `php-base` csak a buildhez kell, a
+> `docker compose up prod db` nem indítja el.
+>
+> **A szebb megoldás** a Dockerfile-okban lenne, egyetlen sorral, ott, ahol
+> a hiba keletkezik:
 >
 > ```diff
 > -RUN apk add --no-cache \
 > +RUN apk upgrade --no-cache && apk add --no-cache \
 > ```
 >
-> A kiírás szerint a `docker/` mappát nem kellett volna módosítani. 
-> A `docker-compose.yaml`-ból is megoldható lett volna, de ott vagy le kellett volna másolni a teljes Dockerfile-okat,
-> vagy egy külön segédszolgáltatással kicserélni az alap image-et. Mindkettő
-> nehezebben átlátható kerülőút lett volna.
+> A compose-os változat ugyanezt csinálja, csak kerülőúton.
 
 ## Előkészületek
 
