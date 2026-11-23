@@ -3,7 +3,10 @@
     "type": "project",
     "scripts": {
         "analyse": "phpstan analyse -c phpstan.neon",
-        "format": "php-cs-fixer fix"
+        "format": "php-cs-fixer fix",
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration"
     },
     "autoload": {
         "psr-4": {

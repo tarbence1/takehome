@@ -26,6 +26,44 @@
 >
 > A compose-os változat ugyanezt csinálja, csak kerülőúton.
 
+> **Tesztek és ellenőrzések futtatása**
+>
+> A tesztek a fejlesztői containerekben futnak, ezért előbb ezeket kell elindítani:
+>
+> ```sh
+> docker compose up -d api-dev client-dev db
+> ```
+>
+> Szerveroldali tesztek (PHPUnit) és kliensoldali tesztek (Vitest):
+>
+> ```sh
+> docker compose exec api-dev composer test
+> docker compose exec client-dev npm test
+> ```
+>
+> A szerveroldali tesztek két csoportra oszlanak:
+>
+> - `composer test:unit`: egységtesztek, adatbázis nélkül, bárhol futnak;
+> - `composer test:integration`: az `api/test/Integration/` tesztjei élő
+>   adatbázison. Ha az adatbázis nem érhető el, hibával állnak le.
+>
+> A `composer test` mindkettőt futtatja. A kapcsolat adatai a
+> `api/phpunit.xml` `DB_*` környezeti változóiban vannak (alapból a `db`
+> container). Felülírhatók, így az integrációs tesztek a hostról is
+> futtathatók:
+>
+> ```sh
+> cd api
+> DB_HOST=127.0.0.1 DB_PORT=8081 composer test:integration
+> ```
+>
+> Statikus ellenőrzések:
+>
+> ```sh
+> docker compose exec api-dev composer analyse
+> docker compose exec client-dev sh -c "npm run typecheck && npm run lint"
+> ```
+
 ## Előkészületek
 
 Legyenek feltelepítve az alábbi programok:

@@ -8,33 +8,37 @@ use ADS\TakeHome\Framework\MySQL;
 use ADS\TakeHome\Weather\DateRange;
 use ADS\TakeHome\Weather\MySqlWeatherRepository;
 use ADS\TakeHome\Weather\Pagination;
-use PDOException;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * A valódi adatbázison futó teszt: a lapozás és a statisztika SQL-je a betöltött adatokkal.
- * Ha az adatbázis nem érhető el (pl. a konténeren kívül), a tesztek kimaradnak.
+ * A kapcsolat adatai a `phpunit.xml` `DB_*` környezeti változóiból jönnek; ha az adatbázis
+ * nem érhető el, a tesztek hibával állnak le, nem maradnak ki csendben.
  */
 #[Group('integration')]
 final class MySqlWeatherRepositoryTest extends TestCase
 {
-    private MySqlWeatherRepository $repository;
+    private static MySqlWeatherRepository $repository;
 
-    protected function setUp(): void
+    /** Egyetlen, a teszteknél közös kapcsolat; a tesztek csak olvasnak. */
+    public static function setUpBeforeClass(): void
     {
-        try {
-            $this->repository = new MySqlWeatherRepository(new MySQL('db', 'weather', 'root', 'root'));
-        } catch (PDOException $e) {
-            $this->markTestSkipped('Az adatbázis nem érhető el: ' . $e->getMessage());
-        }
+        self::$repository = new MySqlWeatherRepository(new MySQL(
+            self::env('DB_HOST'),
+            self::env('DB_NAME'),
+            self::env('DB_USER'),
+            self::env('DB_PASSWORD'),
+            (int) self::env('DB_PORT'),
+        ));
     }
 
     #[Test]
     public function budapestDecemberStatistics(): void
     {
-        $statistics = $this->repository->getDailyWeatherStatistics(1, DateRange::fromStrings('2023-12-01', '2023-12-31'));
+        $statistics = self::$repository->getDailyWeatherStatistics(1, DateRange::fromStrings('2023-12-01', '2023-12-31'));
 
         $this->assertSame(31, $statistics->totalDays);
         $summary = $statistics->summary;
@@ -51,7 +55,7 @@ final class MySqlWeatherRepositoryTest extends TestCase
     #[Test]
     public function medianOfEvenCountIsAverageOfMiddleTwo(): void
     {
-        $statistics = $this->repository->getDailyWeatherStatistics(1, DateRange::fromStrings('2023-12-01', '2023-12-02'));
+        $statistics = self::$repository->getDailyWeatherStatistics(1, DateRange::fromStrings('2023-12-01', '2023-12-02'));
 
         $this->assertSame(2, $statistics->totalDays);
         $this->assertSame(0.35, $statistics->summary->minTemp->median);
@@ -61,7 +65,7 @@ final class MySqlWeatherRepositoryTest extends TestCase
     #[Test]
     public function firstPageHasHundredDaysWithSqlComputedAverage(): void
     {
-        $days = $this->repository->findDailyWeatherPage(1, $this->year2023(), new Pagination(1));
+        $days = self::$repository->findDailyWeatherPage(1, $this->year2023(), new Pagination(1));
 
         $this->assertCount(100, $days);
         $this->assertSame('2023-01-01', $days[0]->date->format('Y-m-d'));
@@ -73,7 +77,7 @@ final class MySqlWeatherRepositoryTest extends TestCase
     #[Test]
     public function lastPageHoldsTheRemainingDays(): void
     {
-        $days = $this->repository->findDailyWeatherPage(1, $this->year2023(), new Pagination(4));
+        $days = self::$repository->findDailyWeatherPage(1, $this->year2023(), new Pagination(4));
 
         $this->assertCount(65, $days);
         $this->assertSame('2023-12-31', $days[64]->date->format('Y-m-d'));
@@ -84,8 +88,8 @@ final class MySqlWeatherRepositoryTest extends TestCase
     {
         $range = DateRange::fromStrings('1938-11-01', '1938-11-01');
 
-        $days = $this->repository->findRegionDailyAveragesPage('Dunántúl', $range, new Pagination(1));
-        $statistics = $this->repository->getRegionDailyAveragesStatistics('Dunántúl', $range);
+        $days = self::$repository->findRegionDailyAveragesPage('Dunántúl', $range, new Pagination(1));
+        $statistics = self::$repository->getRegionDailyAveragesStatistics('Dunántúl', $range);
 
         $this->assertCount(1, $days);
         $this->assertSame(0.0, $days[0]->precipitation);
@@ -100,7 +104,7 @@ final class MySqlWeatherRepositoryTest extends TestCase
     {
         $range = DateRange::fromStrings('1938-11-01', '1938-11-01');
 
-        $days = $this->repository->findDailyWeatherPage(3, $range, new Pagination(1));
+        $days = self::$repository->findDailyWeatherPage(3, $range, new Pagination(1));
 
         $this->assertCount(1, $days);
         $this->assertNull($days[0]->precipitation);
@@ -112,13 +116,22 @@ final class MySqlWeatherRepositoryTest extends TestCase
         $range = $this->year2023();
 
         $this->assertEquals(
-            $this->repository->getDailyWeatherStatistics(1, $range),
-            $this->repository->getRegionDailyAveragesStatistics('Közép-Magyarország', $range),
+            self::$repository->getDailyWeatherStatistics(1, $range),
+            self::$repository->getRegionDailyAveragesStatistics('Közép-Magyarország', $range),
         );
     }
 
     private function year2023(): DateRange
     {
         return DateRange::fromStrings('2023-01-01', '2023-12-31');
+    }
+
+    private static function env(string $name): string
+    {
+        $value = getenv($name);
+        if ($value === false) {
+            throw new RuntimeException("Hiányzó környezeti változó: {$name} (ld. phpunit.xml)");
+        }
+        return $value;
     }
 }

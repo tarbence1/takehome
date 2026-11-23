@@ -13,10 +13,22 @@
   colors="true"
 >
   <testsuites>
-    <testsuite name="default">
+    <testsuite name="unit">
       <directory>test</directory>
+      <exclude>test/Integration</exclude>
+    </testsuite>
+    <testsuite name="integration">
+      <directory>test/Integration</directory>
     </testsuite>
   </testsuites>
+
+  <php>
+    <env name="DB_HOST" value="db"/>
+    <env name="DB_PORT" value="3306"/>
+    <env name="DB_NAME" value="weather"/>
+    <env name="DB_USER" value="root"/>
+    <env name="DB_PASSWORD" value="root"/>
+  </php>
 
   <source restrictDeprecations="true" restrictNotices="true" restrictWarnings="true">
     <include>
