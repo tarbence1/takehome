@@ -1,5 +1,27 @@
 # Adiumsoft PHP / React gyakorlati feladat
 
+
+> **Megjegyzés a `docker/` mappa módosításáról**
+>
+> A projekt nálam nem indult el: a `composer install` hibára futott, mert nem
+> töltődött be a PHP `iconv` bővítménye. Az ok, hogy az alap image régebbi PHP-t
+> tartalmaz (8.3.9), az `apk add` viszont a legújabb bővítményeket telepíti
+> mellé (8.3.36), és ezek nem működnek együtt.
+>
+> A javítás egyetlen sor a Dockerfile-okban: telepítés előtt egy
+> `apk upgrade` frissíti a meglévő csomagokat is, így minden PHP-csomag
+> ugyanarra a verzióra kerül.
+>
+> ```diff
+> -RUN apk add --no-cache \
+> +RUN apk upgrade --no-cache && apk add --no-cache \
+> ```
+>
+> A kiírás szerint a `docker/` mappát nem kellett volna módosítani. 
+> A `docker-compose.yaml`-ból is megoldható lett volna, de ott vagy le kellett volna másolni a teljes Dockerfile-okat,
+> vagy egy külön segédszolgáltatással kicserélni az alap image-et. Mindkettő
+> nehezebben átlátható kerülőút lett volna.
+
 ## Előkészületek
 
 Legyenek feltelepítve az alábbi programok:

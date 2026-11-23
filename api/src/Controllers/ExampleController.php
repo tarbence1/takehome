@@ -12,11 +12,11 @@ use ADS\TakeHome\Framework\MySQL;
 /**
  * Egy minta controller osztály, a keretrendszer funkcióinak bemutatásához.
  */
-class ExampleController
+readonly class ExampleController
 {
     public function __construct(
-        private readonly string $greeting,
-        private readonly MySQL $db,
+        private string $greeting,
+        private MySQL $db,
     ) {
     }
 
